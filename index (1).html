@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pool Costs" />
+  <meta name="theme-color" content="#0a2540" />
+  <title>Pool Chemical Costs</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" media="print" onload="this.media='all'" />
+  <style>
+    :root {
+      --bg:#061a2e;--surface:#0d2d4a;--surface2:#133660;
+      --accent:#00d4ff;--accent2:#00ffa3;
+      --text:#e8f4fd;--text-muted:#7aa8c7;
+      --danger:#ff6b6b;--up:#ff8c6b;--down:#00ffa3;
+      --border:rgba(0,212,255,0.15);--radius:16px;
+      --safe-top:env(safe-area-inset-top);--safe-bottom:env(safe-area-inset-bottom);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 20% -10%,rgba(0,180,255,.12) 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 80% 100%,rgba(0,255,163,.08) 0%,transparent 60%);pointer-events:none;z-index:0}
+    #app{position:relative;z-index:1}
+    header{padding:calc(var(--safe-top) + 16px) 20px 16px;background:rgba(6,26,46,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+    .header-inner{max-width:600px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .logo-icon{width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
+    .logo h1{font-family:'DM Serif Display',serif;font-size:20px;color:var(--text);letter-spacing:-.3px}
+    .nav-tabs{display:flex;gap:3px;background:var(--surface);border-radius:10px;padding:3px}
+    .nav-tab{padding:6px 11px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--text-muted);transition:all .2s;font-family:inherit;white-space:nowrap}
+    .nav-tab.active{background:linear-gradient(135deg,var(--accent),#0095b8);color:#fff}
+    main{max-width:600px;margin:0 auto;padding:20px 16px calc(var(--safe-bottom) + 32px)}
+    .page{display:none}
+    .page.active{display:block;animation:fadeIn .22s ease}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+    .section-label{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin:24px 0 10px 4px}
+    .section-label:first-child{margin-top:4px}
+
+    /* Costs cards */
+    .chem-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .chem-info{flex:1;min-width:0}
+    .chem-name{font-family:'DM Serif Display',serif;font-size:17px;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .chem-sub{display:flex;align-items:center;gap:8px}
+    .chem-notes{font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .trend-badge{font-size:11px;font-weight:600;padding:2px 6px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+    .trend-badge.up{background:rgba(255,140,107,.15);color:var(--up)}
+    .trend-badge.down{background:rgba(0,255,163,.12);color:var(--down)}
+    .trend-badge.same{background:rgba(122,168,199,.12);color:var(--text-muted)}
+    .chem-price-block{text-align:right;flex-shrink:0}
+    .chem-price{font-family:'DM Serif Display',serif;font-size:22px;color:var(--accent2);line-height:1}
+    .chem-unit{font-size:11px;color:var(--text-muted);margin-top:3px}
+    .empty-state{text-align:center;padding:48px 20px;color:var(--text-muted)}
+    .empty-state .icon{font-size:40px;margin-bottom:12px}
+    .empty-state p{font-size:15px;line-height:1.5}
+    .last-updated{text-align:center;font-size:11px;color:var(--text-muted);margin-top:24px;opacity:.6}
+
+    /* Manage */
+    .manage-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px}
+    .manage-info{flex:1;min-width:0}
+    .manage-name{font-weight:600;font-size:15px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .manage-meta{font-size:12px;color:var(--text-muted)}
+    .manage-actions{display:flex;gap:8px;flex-shrink:0}
+    .btn-icon{width:34px;height:34px;border-radius:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .15s;font-family:inherit}
+    .btn-edit{background:var(--surface2);color:var(--accent)}
+    .btn-delete{background:rgba(255,107,107,.12);color:var(--danger)}
+    .btn-edit:active{background:var(--accent);color:#fff}
+    .btn-delete:active{background:var(--danger);color:#fff}
+    .add-btn{width:100%;padding:16px;background:linear-gradient(135deg,var(--accent),#0095b8);color:#fff;border:none;border-radius:var(--radius);font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;margin-top:20px;transition:opacity .2s}
+    .add-btn:active{opacity:.8}
+
+    /* History */
+    .hist-chem-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:border-color .2s}
+    .hist-chem-card:active{border-color:var(--accent)}
+    .hist-card-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .hist-name{font-family:'DM Serif Display',serif;font-size:17px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .hist-current{font-family:'DM Serif Display',serif;font-size:18px;color:var(--accent2);flex-shrink:0}
+    .hist-entries{display:none;margin-top:14px;border-top:1px solid var(--border);padding-top:12px}
+    .hist-chem-card.expanded .hist-entries{display:block}
+    .hist-chevron{font-size:11px;color:var(--text-muted);transition:transform .2s;flex-shrink:0;margin-left:4px}
+    .hist-chem-card.expanded .hist-chevron{transform:rotate(180deg)}
+    .timeline{position:relative;padding-left:20px}
+    .timeline::before{content:'';position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--border);border-radius:1px}
+    .tl-entry{position:relative;margin-bottom:14px;display:flex;align-items:flex-start;gap:12px}
+    .tl-entry:last-child{margin-bottom:0}
+    .tl-dot{position:absolute;left:-17px;top:4px;width:10px;height:10px;border-radius:50%;border:2px solid var(--surface)}
+    .tl-dot.current{background:var(--accent2);box-shadow:0 0 6px rgba(0,255,163,.5)}
+    .tl-dot.up{background:var(--up)}
+    .tl-dot.down{background:var(--down)}
+    .tl-dot.initial{background:var(--text-muted)}
+    .tl-info{flex:1}
+    .tl-price-row{display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-wrap:wrap}
+    .tl-price{font-weight:600;font-size:15px;color:var(--text)}
+    .tl-change{font-size:12px;font-weight:600}
+    .tl-change.up{color:var(--up)}
+    .tl-change.down{color:var(--down)}
+    .tl-date{font-size:12px;color:var(--text-muted)}
+    .tl-label{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted)}
+    .no-history{font-size:13px;color:var(--text-muted);text-align:center;padding:8px 0 2px;line-height:1.5}
+
+    /* Modal */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:200;align-items:flex-end;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal{background:var(--surface);border-radius:24px 24px 0 0;padding:24px 20px calc(var(--safe-bottom) + 28px);width:100%;max-width:600px;border-top:1px solid var(--border);animation:slideUp .3s cubic-bezier(.34,1.56,.64,1)}
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+    .modal h2{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:20px}
+    .form-group{margin-bottom:16px}
+    .form-group label{display:block;font-size:12px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text-muted);margin-bottom:7px}
+    .form-group input,.form-group select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px 14px;color:var(--text);font-family:inherit;font-size:15px;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+    .form-group select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237aa8c7' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+    .form-group input:focus,.form-group select:focus{border-color:var(--accent)}
+    .form-row{display:flex;gap:10px}
+    .form-row .form-group{flex:1}
+    .modal-actions{display:flex;gap:10px;margin-top:20px}
+    .btn-cancel{flex:1;padding:14px;border-radius:12px;background:var(--surface2);border:none;color:var(--text-muted);font-family:inherit;font-size:15px;cursor:pointer}
+    .btn-save{flex:2;padding:14px;border-radius:12px;background:linear-gradient(135deg,var(--accent2),#00b874);border:none;color:#061a2e;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer}
+    .btn-cancel:active,.btn-save:active{opacity:.75}
+    .price-change-note{font-size:12px;color:var(--text-muted);margin-top:6px;padding:8px 12px;background:rgba(0,212,255,.06);border-radius:8px;display:none;line-height:1.4}
+
+    /* Confirm */
+    .confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:300;align-items:center;justify-content:center;padding:20px}
+    .confirm-overlay.open{display:flex}
+    .confirm-box{background:var(--surface);border-radius:20px;padding:28px 24px;width:100%;max-width:320px;border:1px solid var(--border);text-align:center;animation:popIn .25s cubic-bezier(.34,1.56,.64,1)}
+    @keyframes popIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+    .confirm-box .icon{font-size:36px;margin-bottom:12px}
+    .confirm-box h3{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:8px}
+    .confirm-box p{font-size:14px;color:var(--text-muted);line-height:1.5;margin-bottom:20px}
+    .confirm-actions{display:flex;gap:10px}
+    .btn-confirm-cancel{flex:1;padding:13px;border-radius:10px;background:var(--surface2);border:none;color:var(--text-muted);font-family:inherit;font-size:14px;cursor:pointer}
+    .btn-confirm-delete{flex:1;padding:13px;border-radius:10px;background:var(--danger);border:none;color:#fff;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  </style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">🧪</div>
+        <h1>Pool Costs</h1>
+      </div>
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="showPage('home',this)">Costs</button>
+        <button class="nav-tab" onclick="showPage('history',this)">History</button>
+        <button class="nav-tab" onclick="showPage('manage',this)">Manage</button>
+      </div>
+    </div>
+  </header>
+  <main>
+    <div id="page-home" class="page active">
+      <div id="home-content"></div>
+      <div class="last-updated" id="last-updated"></div>
+    </div>
+    <div id="page-history" class="page">
+      <div id="history-content"></div>
+    </div>
+    <div id="page-manage" class="page">
+      <div id="manage-content"></div>
+      <button class="add-btn" onclick="openModal(null)">＋ Add Chemical / Item</button>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modal-title">Add Item</h2>
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="f-name" placeholder="e.g. Liquid Chlorine" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Price ($)</label>
+        <input type="number" id="f-price" placeholder="0.00" min="0" step="0.01" inputmode="decimal" oninput="onPriceInput()" />
+        <div class="price-change-note" id="price-change-note"></div>
+      </div>
+      <div class="form-group">
+        <label>Unit Type</label>
+        <select id="f-unit">
+          <option value="gal">Per Gallon</option>
+          <option value="item">Per Item</option>
+          <option value="lb">Per Pound</option>
+          <option value="oz">Per Oz</option>
+          <option value="bag">Per Bag</option>
+          <option value="tab">Per Tab</option>
+          <option value="qt">Per Quart</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes <span style="font-weight:300;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <input type="text" id="f-notes" placeholder="e.g. 12.5% strength, 2.5 gal jug" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE CONFIRM -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="icon">🗑️</div>
+    <h3>Delete Item?</h3>
+    <p id="confirm-msg">This will remove the item from your list.</p>
+    <div class="confirm-actions">
+      <button class="btn-confirm-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-confirm-delete" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var STORAGE_KEY='poolChemicals_v2';
+var UNIT_LABELS={gal:'per gallon',item:'per item',lb:'per lb',oz:'per oz',bag:'per bag',tab:'per tab',qt:'per quart'};
+var DEFAULT_CHEMICALS=[
+  {id:1,name:'Liquid Chlorine',price:3.49,unit:'gal',notes:'10% sodium hypochlorite',history:[]},
+  {id:2,name:'Muriatic Acid',price:5.99,unit:'gal',notes:'pH reducer',history:[]},
+  {id:3,name:'Chlorine Tablets',price:1.25,unit:'tab',notes:'3" trichlor tabs',history:[]},
+  {id:4,name:'Alkalinity Up',price:8.49,unit:'lb',notes:'Sodium bicarbonate',history:[]},
+  {id:5,name:'Stabilizer (CYA)',price:12.99,unit:'lb',notes:'Cyanuric acid',history:[]}
+];
+var chemicals=[];
+var editingId=null;
+var deletingId=null;
+
+function safeGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function safeSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+
+function cloneDefaults(){
+  return DEFAULT_CHEMICALS.map(function(c){return {id:c.id,name:c.name,price:c.price,unit:c.unit,notes:c.notes,history:[]};});
+}
+
+function load(){
+  var raw=safeGet(STORAGE_KEY);
+  if(raw){
+    try{
+      chemicals=JSON.parse(raw);
+      chemicals.forEach(function(c){if(!c.history)c.history=[];});
+    }catch(e){chemicals=cloneDefaults();}
+  } else {
+    // migrate from v1
+    var old=safeGet('poolChemicals_v1');
+    if(old){
+      try{
+        chemicals=JSON.parse(old).map(function(c){return {id:c.id,name:c.name,price:c.price,unit:c.unit,notes:c.notes||'',history:[]};});
+        save();
+      }catch(e){chemicals=cloneDefaults();}
+    } else {
+      chemicals=cloneDefaults();
+    }
+  }
+}
+
+function save(){
+  safeSet(STORAGE_KEY,JSON.stringify(chemicals));
+  safeSet(STORAGE_KEY+'_updated',new Date().toISOString());
+}
+
+function nextId(){
+  if(!chemicals.length)return 1;
+  return Math.max.apply(null,chemicals.map(function(c){return c.id;}))+1;
+}
+
+function fmt(p){return '$'+parseFloat(p).toFixed(2);}
+
+function fmtDate(iso){
+  var d=new Date(iso);
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getTrend(chem){
+  if(!chem.history||!chem.history.length)return null;
+  var last=chem.history[chem.history.length-1];
+  var diff=chem.price-last.price;
+  if(Math.abs(diff)<0.001)return {dir:'same',diff:0};
+  return {dir:diff>0?'up':'down',diff:diff};
+}
+
+function trendBadge(trend){
+  if(!trend||trend.dir==='same')return '<span class="trend-badge same">— same</span>';
+  if(trend.dir==='up')return '<span class="trend-badge up">▲ '+fmt(Math.abs(trend.diff))+'</span>';
+  return '<span class="trend-badge down">▼ '+fmt(Math.abs(trend.diff))+'</span>';
+}
+
+function groupChemicals(){
+  var g={};
+  chemicals.forEach(function(c){
+    var k=(c.unit==='gal'||c.unit==='qt')?'Liquids':'Dry / Other';
+    if(!g[k])g[k]=[];
+    g[k].push(c);
+  });
+  return g;
+}
+
+function renderHome(){
+  var el=document.getElementById('home-content');
+  if(!chemicals.length){el.innerHTML='<div class="empty-state"><div class="icon">🧴</div><p>No chemicals yet.<br>Head to <strong>Manage</strong> to add some.</p></div>';return;}
+  var groups=groupChemicals();
+  var html='';
+  for(var g in groups){
+    html+='<div class="section-label">'+g+'</div>';
+    groups[g].forEach(function(c){
+      var trend=getTrend(c);
+      html+='<div class="chem-card"><div class="chem-info"><div class="chem-name">'+esc(c.name)+'</div><div class="chem-sub">'+(c.notes?'<span class="chem-notes">'+esc(c.notes)+'</span>':'')+trendBadge(trend)+'</div></div><div class="chem-price-block"><div class="chem-price">'+fmt(c.price)+'</div><div class="chem-unit">'+(UNIT_LABELS[c.unit]||c.unit)+'</div></div></div>';
+    });
+  }
+  el.innerHTML=html;
+  var upd=safeGet(STORAGE_KEY+'_updated');
+  if(upd)document.getElementById('last-updated').textContent='Last updated '+fmtDate(upd);
+}
+
+function renderHistory(){
+  var el=document.getElementById('history-content');
+  if(!chemicals.length){el.innerHTML='<div class="empty-state"><div class="icon">📈</div><p>No chemicals yet.<br>Add some in <strong>Manage</strong>.</p></div>';return;}
+  var html='<div class="section-label">Price History — tap to expand</div>';
+  chemicals.forEach(function(c){
+    var trend=getTrend(c);
+
+    // Build entries array: [current, ...history reversed]
+    var entries=[];
+    entries.push({price:c.price,date:safeGet(STORAGE_KEY+'_updated')||new Date().toISOString(),isCurrent:true,prevPrice:c.history.length?c.history[c.history.length-1].price:null});
+    for(var i=c.history.length-1;i>=0;i--){
+      entries.push({price:c.history[i].price,date:c.history[i].date,isCurrent:false,prevPrice:i>0?c.history[i-1].price:null});
+    }
+
+    var tlHtml='';
+    if(c.history.length===0){
+      tlHtml='<p class="no-history">No price changes recorded yet.<br>Edit this item to start tracking.</p>';
+    } else {
+      tlHtml='<div class="timeline">';
+      entries.forEach(function(e){
+        var dotClass='initial';
+        var changeHtml='';
+        if(e.isCurrent){
+          if(trend&&trend.dir!=='same'){
+            dotClass=trend.dir;
+            changeHtml='<span class="tl-change '+trend.dir+'">'+(trend.dir==='up'?'▲ +':'▼ ')+fmt(Math.abs(trend.diff))+'</span>';
+          } else {
+            dotClass='current';
+          }
+        } else if(e.prevPrice!==null){
+          var d=e.price-e.prevPrice;
+          if(Math.abs(d)>0.001){
+            dotClass=d>0?'up':'down';
+            changeHtml='<span class="tl-change '+dotClass+'">'+(d>0?'▲ +':'▼ ')+fmt(Math.abs(d))+'</span>';
+          }
+        }
+        tlHtml+='<div class="tl-entry"><div class="tl-dot '+dotClass+'"></div><div class="tl-info"><div class="tl-price-row"><span class="tl-price">'+fmt(e.price)+'</span>'+changeHtml+(e.isCurrent?'<span class="tl-label">current</span>':'')+'</div><div class="tl-date">'+fmtDate(e.date)+'</div></div></div>';
+      });
+      tlHtml+='</div>';
+    }
+
+    html+='<div class="hist-chem-card" onclick="toggleHistory(this)"><div class="hist-card-top"><div class="hist-name">'+esc(c.name)+'</div>'+trendBadge(trend)+'<div class="hist-current">'+fmt(c.price)+'</div><div class="hist-chevron">▼</div></div><div class="hist-entries">'+tlHtml+'</div></div>';
+  });
+  el.innerHTML=html;
+}
+
+function toggleHistory(card){card.classList.toggle('expanded');}
+
+function renderManage(){
+  var el=document.getElementById('manage-content');
+  if(!chemicals.length){el.innerHTML='<div class="empty-state"><div class="icon">🧪</div><p>No items yet. Tap below to add your first chemical.</p></div>';return;}
+  var html='<div class="section-label">All Items</div>';
+  chemicals.forEach(function(c){
+    html+='<div class="manage-card"><div class="manage-info"><div class="manage-name">'+esc(c.name)+'</div><div class="manage-meta">'+fmt(c.price)+' '+(UNIT_LABELS[c.unit]||c.unit)+(c.notes?' · '+esc(c.notes):'')+'</div></div><div class="manage-actions"><button class="btn-icon btn-edit" onclick="openModal('+c.id+')">✏️</button><button class="btn-icon btn-delete" onclick="openConfirm('+c.id+')">🗑️</button></div></div>';
+  });
+  el.innerHTML=html;
+}
+
+function renderAll(){renderHome();renderHistory();renderManage();}
+
+function showPage(page,tabEl){
+  var ps=document.querySelectorAll('.page');
+  var ts=document.querySelectorAll('.nav-tab');
+  for(var i=0;i<ps.length;i++)ps[i].classList.remove('active');
+  for(var j=0;j<ts.length;j++)ts[j].classList.remove('active');
+  document.getElementById('page-'+page).classList.add('active');
+  if(tabEl)tabEl.classList.add('active');
+  if(page==='home')renderHome();
+  if(page==='history')renderHistory();
+  if(page==='manage')renderManage();
+}
+
+function openModal(id){
+  editingId=id||null;
+  var note=document.getElementById('price-change-note');
+  note.style.display='none';
+  if(id){
+    var c=chemicals.filter(function(x){return x.id===id;})[0];
+    document.getElementById('modal-title').textContent='Edit Item';
+    document.getElementById('f-name').value=c.name;
+    document.getElementById('f-price').value=c.price;
+    document.getElementById('f-unit').value=c.unit;
+    document.getElementById('f-notes').value=c.notes||'';
+    document.getElementById('f-price').dataset.original=c.price;
+  } else {
+    document.getElementById('modal-title').textContent='Add Item';
+    document.getElementById('f-name').value='';
+    document.getElementById('f-price').value='';
+    document.getElementById('f-unit').value='gal';
+    document.getElementById('f-notes').value='';
+    document.getElementById('f-price').dataset.original='';
+  }
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(function(){document.getElementById('f-name').focus();},300);
+}
+
+function onPriceInput(){
+  var input=document.getElementById('f-price');
+  var note=document.getElementById('price-change-note');
+  var orig=parseFloat(input.dataset.original);
+  var cur=parseFloat(input.value);
+  if(!editingId||isNaN(orig)||isNaN(cur)||cur===orig){note.style.display='none';return;}
+  var diff=cur-orig;
+  note.textContent='Price '+(diff>0?'▲ increase':'▼ decrease')+' of '+fmt(Math.abs(diff))+' from '+fmt(orig)+' will be recorded.';
+  note.style.display='block';
+}
+
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+  editingId=null;
+}
+
+function handleOverlayClick(e){
+  if(e.target===document.getElementById('modal-overlay'))closeModal();
+}
+
+function saveItem(){
+  var name=document.getElementById('f-name').value.trim();
+  var price=parseFloat(document.getElementById('f-price').value);
+  var unit=document.getElementById('f-unit').value;
+  var notes=document.getElementById('f-notes').value.trim();
+  if(!name){document.getElementById('f-name').focus();return;}
+  if(isNaN(price)||price<0){document.getElementById('f-price').focus();return;}
+  if(editingId){
+    var idx=-1;
+    for(var i=0;i<chemicals.length;i++){if(chemicals[i].id===editingId){idx=i;break;}}
+    if(idx!==-1){
+      var old=chemicals[idx];
+      var hist=old.history?old.history.slice():[];
+      if(Math.abs(old.price-price)>0.001){
+        hist.push({price:old.price,date:new Date().toISOString()});
+      }
+      chemicals[idx]={id:editingId,name:name,price:price,unit:unit,notes:notes,history:hist};
+    }
+  } else {
+    chemicals.push({id:nextId(),name:name,price:price,unit:unit,notes:notes,history:[]});
+  }
+  save();renderAll();closeModal();
+}
+
+function openConfirm(id){
+  deletingId=id;
+  var c=chemicals.filter(function(x){return x.id===id;})[0];
+  document.getElementById('confirm-msg').textContent='"'+c.name+'" will be permanently removed.';
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+
+function closeConfirm(){
+  document.getElementById('confirm-overlay').classList.remove('open');
+  deletingId=null;
+}
+
+function confirmDelete(){
+  chemicals=chemicals.filter(function(c){return c.id!==deletingId;});
+  save();renderAll();closeConfirm();
+}
+
+function init(){
+  load();renderAll();
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  }
+}
+
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',init);
+}else{
+  init();
+}
+</script>
+</body>
+</html>
